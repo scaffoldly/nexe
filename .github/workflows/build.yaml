@@ -19,6 +19,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - uses: docker/setup-qemu-action@v3
+
       - id: node-version
         run: |
           docker pull --platform ${{ matrix.os }}/${{ matrix.platform }} node:${{ matrix.node }} 2>&1 > /dev/null
@@ -27,9 +29,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: .nexe
-          key: ${{ matrix.os }}-${{ matrix.platform }}-${{ steps.node-version.outputs.stdout }}-nexe
-
-      - uses: docker/setup-qemu-action@v3
+          key: ${{ matrix.os }}-${{ matrix.platform }}-${{ join(steps.node-version.outputs.*, '') }}-nexe
 
       - run: >
           docker run 
