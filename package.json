@@ -1,0 +1,19 @@
+{
+  "name": "is-warm",
+  "version": "0.0.0",
+  "description": "A test app to warm up the nexe build cache",
+  "main": "index.js",
+  "repository": "https://github.com/scaffoldly/nexe.git",
+  "author": "Scaffoldly <github.com/scaffoldly>",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "engineStrict": true,
+  "scripts": {
+    "build": "nexe --build --output dist/is-warm"
+  },
+  "devDependencies": {
+    "nexe": "^5.0.0-beta.4"
+  }
+}
