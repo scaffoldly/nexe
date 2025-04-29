@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  timeout-minutes: 720 # 12 hours to let arm64 builds run
   warm:
+    timeout-minutes: 720 # 12 hours to let arm64 builds run
     strategy:
       matrix:
         node: [20, 22]
