@@ -11,7 +11,7 @@
   },
   "engineStrict": true,
   "scripts": {
-    "build": "nexe --build --output dist/is-warm"
+    "build": "nexe --verbose --build --output dist/is-warm"
   },
   "devDependencies": {
     "nexe": "^5.0.0-beta.4"
