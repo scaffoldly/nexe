@@ -30,11 +30,11 @@ jobs:
           key: ${{ matrix.os }}-${{ matrix.platform }}-${{ env.NODE_VERSION }}-nexe
 
       - run: |
-          docker run
-            --mount=type=bind,src=.,dst=/root -w /root
-            --platform ${{ matrix.platform }}
-            node:${{ matrix.node }}
-              bash -c
+          docker run \
+            --mount=type=bind,src=.,dst=/root -w /root \
+            --platform ${{ matrix.platform }} \
+            node:${{ matrix.node }} \
+              bash -c \
                 "yarn && yarn build --python=/usr/bin/python3 && ./dist/is-warm"
 
       - uses: actions/upload-artifact@v4
