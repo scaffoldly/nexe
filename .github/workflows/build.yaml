@@ -21,22 +21,21 @@ jobs:
 
       - uses: docker/setup-qemu-action@v3
 
-      - id: node-version
-        run: |
-          docker pull --platform ${{ matrix.os }}/${{ matrix.platform }} node:${{ matrix.node }} 2>&1 > /dev/null
-          docker run --platform ${{ matrix.os }}/${{ matrix.platform }} node:${{ matrix.node }} bash -c "node --version"
+      - name: node version
+        run: echo "NODE_VERSION=$(docker run --platform ${{ matrix.os }}/${{ matrix.platform }} node:${{ matrix.node }} --version)" >> "$GITHUB_ENV"
 
       - uses: actions/cache@v4
         with:
           path: .nexe
-          key: ${{ matrix.os }}-${{ matrix.platform }}-${{ join(steps.node-version.outputs.*, '') }}-nexe
+          key: ${{ matrix.os }}-${{ matrix.platform }}-${{ env.NODE_VERSION }}-nexe
 
-      - run: >
-          docker run 
-            --mount=type=bind,src=.,dst=/root -w /root 
+      - run: |
+          docker run
+            --mount=type=bind,src=.,dst=/root -w /root
             --platform ${{ matrix.platform }}
-            node:${{ matrix.node }} 
-              bash -c "yarn && yarn build --python=/usr/bin/python3 && ./dist/is-warm"
+            node:${{ matrix.node }}
+              bash -c
+                "yarn && yarn build --python=/usr/bin/python3 && ./dist/is-warm"
 
       - uses: actions/upload-artifact@v4
         id: upload
