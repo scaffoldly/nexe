@@ -1,32 +1,36 @@
 name: Build and Push Docker Image
 
 on:
-  schedule:
-    - cron: "0 0 * * *"
   push:
     branches:
       - main
   workflow_dispatch:
 
 jobs:
+  timeout-minutes: 720 # 12 hours to let arm64 builds run
   warm:
     strategy:
       matrix:
         node: [20, 22]
         os: [linux]
         platform: [amd64, arm64]
+    outputs:
+      node-version: ${{ steps.node-version.outputs.version }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
 
       - uses: docker/setup-qemu-action@v3
 
-      - run: |
+      - id: node-version
+        run: |
           echo "NODE_OS=$(docker run --platform ${{ matrix.os }}/${{ matrix.platform }} node:${{ matrix.node }} uname -s)" >> "$GITHUB_ENV"
           echo "NODE_ARCH=$(docker run --platform ${{ matrix.os }}/${{ matrix.platform }} node:${{ matrix.node }} uname -m)" >> "$GITHUB_ENV"
           echo "NODE_VERSION=$(docker run --platform ${{ matrix.os }}/${{ matrix.platform }} node:${{ matrix.node }} --version)" >> "$GITHUB_ENV"
+          echo "version=$(docker run --platform ${{ matrix.os }}/${{ matrix.platform }} node:${{ matrix.node }} --version)" >> "$GITHUB_OUTPUT"
 
       - uses: actions/cache@v4
+        if: always()
         with:
           path: .nexe
           key: nexe-${{ env.NODE_OS }}-${{ env.NODE_ARCH }}-${{ env.NODE_VERSION }}
@@ -40,23 +44,42 @@ jobs:
                 "yarn && yarn build --python=/usr/bin/python3 && ./dist/is-warm"
 
       - uses: actions/upload-artifact@v4
+        if: always()
         id: upload
         with:
           name: nexe-${{ env.NODE_OS }}-${{ env.NODE_ARCH }}-${{ env.NODE_VERSION }}
           path: .nexe
 
-  # build:
+  # collect:
   #   needs: warm
+  #   runs-on: ubuntu-latest
+  #   outputs:
+  #     node-matrix: ${{ steps.make.outputs.matrix }}
+  #   steps:
+  #     - id: make
+  #       run: |
+  #         echo '${{ toJSON(needs) }}' > needs.json
+
+  #         # grab warm.*.outputs.node-version, drop leading 'v', uniq
+  #         versions=$(jq -r '.[].outputs."node-version"' needs.json \
+  #                   | sed 's/^v//' \
+  #                   | sort -u)
+
+  #         # {"node":[ "20.11.1", "22.2.0" ]}
+  #         json=$(printf '%s\n' $versions | jq -R . | jq -s '{node: .}')
+  #         echo "matrix=$json" >> "$GITHUB_OUTPUT"
+
+  # build:
+  #   needs: collect
   #   strategy:
-  #     matrix:
-  #       node: [20, 22]
+  #     matrix: ${{ fromJson(needs.collect.outputs.node-matrix) }}
   #   runs-on: ubuntu-latest
   #   steps:
   #     - uses: actions/checkout@v2
   #     - uses: actions/download-artifact@v4
   #       with:
   #         pattern: nexe-*
-  #         path: ./.nexe
+  #         path: ./nexe-files
   #     - uses: docker/login-action@v3
   #       with:
   #         registry: ghcr.io
@@ -70,8 +93,9 @@ jobs:
   #         images: |
   #           ghcr.io/${{ github.repository }}
   #         tags: |
-  #           type=schedule,prefix=node-${{ matrix.node }}
-  #           type=raw,value=node-${{ matrix.node }}
+  #           type=semver,pattern={{version}},value=${{ matrix.node }},prefix=node-
+  #           type=semver,pattern={{major}},value=${{ matrix.node }},prefix=node-
+  #           type=semver,pattern={{major}}.{{minor}},value=${{ matrix.node }},prefix=node-
   #     - uses: docker/build-push-action@v6
   #       with:
   #         tags: ${{ steps.meta.outputs.tags }}
