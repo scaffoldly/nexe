@@ -21,13 +21,15 @@ jobs:
 
       - uses: docker/setup-qemu-action@v3
 
-      - name: node version
-        run: echo "NODE_VERSION=$(docker run --platform ${{ matrix.os }}/${{ matrix.platform }} node:${{ matrix.node }} --version)" >> "$GITHUB_ENV"
+      - run: |
+          echo "NODE_OS=$(docker run --platform ${{ matrix.os }}/${{ matrix.platform }} node:${{ matrix.node }} uname -s)" >> "$GITHUB_ENV"
+          echo "NODE_ARCH=$(docker run --platform ${{ matrix.os }}/${{ matrix.platform }} node:${{ matrix.node }} uname -m)" >> "$GITHUB_ENV"
+          echo "NODE_VERSION=$(docker run --platform ${{ matrix.os }}/${{ matrix.platform }} node:${{ matrix.node }} --version)" >> "$GITHUB_ENV"
 
       - uses: actions/cache@v4
         with:
           path: .nexe
-          key: ${{ matrix.os }}-${{ matrix.platform }}-${{ env.NODE_VERSION }}-nexe
+          key: nexe-${{ env.NODE_OS }}-${{ env.NODE_ARCH }}-${{ env.NODE_VERSION }}
 
       - run: |
           docker run \
@@ -40,7 +42,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         id: upload
         with:
-          name: nexe-${{ matrix.os }}-${{ matrix.platform }}-${{ matrix.node }}
+          name: nexe-${{ env.NODE_OS }}-${{ env.NODE_ARCH }}-${{ env.NODE_VERSION }}
           path: .nexe
 
   # build:
@@ -51,6 +53,10 @@ jobs:
   #   runs-on: ubuntu-latest
   #   steps:
   #     - uses: actions/checkout@v2
+  #     - uses: actions/download-artifact@v4
+  #       with:
+  #         pattern: nexe-*
+  #         path: ./.nexe
   #     - uses: docker/login-action@v3
   #       with:
   #         registry: ghcr.io
